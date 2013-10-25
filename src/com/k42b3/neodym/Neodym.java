@@ -1,10 +1,8 @@
 /**
- * $Id: Neodym.java 221 2012-03-31 18:57:33Z k42b3.x@gmail.com $
- * 
  * neodym
  * A java library to access the REST API of amun
  * 
- * Copyright (c) 2011 Christoph Kappestein <k42b3.x@gmail.com>
+ * Copyright (c) 2011-2013 Christoph Kappestein <k42b3.x@gmail.com>
  * 
  * This file is part of neodym. neodym is free software: you can 
  * redistribute it and/or modify it under the terms of the GNU 
@@ -25,20 +23,19 @@ package com.k42b3.neodym;
 /**
  * Neodym
  *
- * @author     Christoph Kappestein <k42b3.x@gmail.com>
- * @license    http://www.gnu.org/licenses/gpl.html GPLv3
- * @link       http://code.google.com/p/delta-quadrant
- * @version    $Revision: 221 $
+ * @author  Christoph Kappestein <k42b3.x@gmail.com>
+ * @license http://www.gnu.org/licenses/gpl.html GPLv3
+ * @link    https://github.com/k42b3/neodym
  */
 public class Neodym 
 {
-	public static final String VERSION = "0.0.3 beta";
-
+	public static final String VERSION = "0.0.5 beta";
+	
 	public static String getVersion()
 	{
 		return VERSION;
 	}
-	
+
 	public static void main(String[] args)
 	{
 		System.out.println("Version: " + VERSION);

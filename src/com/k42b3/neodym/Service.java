@@ -1,10 +1,8 @@
 /**
- * $Id: ServiceItem.java 221 2012-03-31 18:57:33Z k42b3.x@gmail.com $
- * 
  * neodym
  * A java library to access the REST API of amun
  * 
- * Copyright (c) 2011 Christoph Kappestein <k42b3.x@gmail.com>
+ * Copyright (c) 2011-2013 Christoph Kappestein <k42b3.x@gmail.com>
  * 
  * This file is part of neodym. neodym is free software: you can 
  * redistribute it and/or modify it under the terms of the GNU 
@@ -27,17 +25,16 @@ import java.util.ArrayList;
 /**
  * An service item of the discovered XRDS
  *
- * @author     Christoph Kappestein <k42b3.x@gmail.com>
- * @license    http://www.gnu.org/licenses/gpl.html GPLv3
- * @link       http://code.google.com/p/delta-quadrant
- * @version    $Revision: 221 $
+ * @author  Christoph Kappestein <k42b3.x@gmail.com>
+ * @license http://www.gnu.org/licenses/gpl.html GPLv3
+ * @link    https://github.com/k42b3/neodym
  */
-public class ServiceItem 
+public class Service 
 {
 	private String uri;
 	private ArrayList<String> types;
 
-	public ServiceItem(String uri, ArrayList<String> types)
+	public Service(String uri, ArrayList<String> types)
 	{
 		this.setUri(uri);
 		this.setTypes(types);
@@ -89,5 +86,15 @@ public class ServiceItem
 	public String toString()
 	{
 		return uri;
+	}
+
+	public boolean equals(Object o)
+	{
+		if(o instanceof Service)
+		{
+			return ((Service) o).getUri().equals(this.getUri());
+		}
+
+		return false;
 	}
 }

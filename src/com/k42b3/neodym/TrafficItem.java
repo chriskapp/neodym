@@ -1,10 +1,8 @@
 /**
- * $Id: TrafficItem.java 221 2012-03-31 18:57:33Z k42b3.x@gmail.com $
- * 
  * neodym
  * A java library to access the REST API of amun
  * 
- * Copyright (c) 2011 Christoph Kappestein <k42b3.x@gmail.com>
+ * Copyright (c) 2011-2013 Christoph Kappestein <k42b3.x@gmail.com>
  * 
  * This file is part of neodym. neodym is free software: you can 
  * redistribute it and/or modify it under the terms of the GNU 
@@ -22,24 +20,31 @@
 
 package com.k42b3.neodym;
 
-import org.apache.http.HttpResponse;
+import java.io.IOException;
+
+import org.apache.http.HttpEntity;
+import org.apache.http.HttpEntityEnclosingRequest;
+import org.apache.http.ParseException;
 import org.apache.http.client.methods.HttpRequestBase;
+import org.apache.http.util.EntityUtils;
 
 /**
  * Represents an http request and response
  *
- * @author     Christoph Kappestein <k42b3.x@gmail.com>
- * @license    http://www.gnu.org/licenses/gpl.html GPLv3
- * @link       http://code.google.com/p/delta-quadrant
- * @version    $Revision: 221 $
+ * @author  Christoph Kappestein <k42b3.x@gmail.com>
+ * @license http://www.gnu.org/licenses/gpl.html GPLv3
+ * @link    https://github.com/k42b3/neodym
  */
 public class TrafficItem 
 {
 	private HttpRequestBase request;
-	private String requestContent = "";
+	private Response response;
 
-	private HttpResponse response;
-	private String responseContent = "";
+	public TrafficItem(HttpRequestBase request, Response response)
+	{
+		this.request = request;
+		this.response = response;
+	}
 
 	public HttpRequestBase getRequest()
 	{
@@ -53,31 +58,43 @@ public class TrafficItem
 
 	public String getRequestContent()
 	{
-		return requestContent;
+		if(request instanceof HttpEntityEnclosingRequest)
+		{
+			try
+			{
+				HttpEntity entity = ((HttpEntityEnclosingRequest) request).getEntity();
+				
+				return EntityUtils.toString(entity);
+			}
+			catch(ParseException e)
+			{
+				return e.getMessage();
+			}
+			catch(IOException e)
+			{
+				return e.getMessage();
+			}
+			catch(UnsupportedOperationException e)
+			{
+				return e.getMessage();
+			}
+		}
+
+		return "";
 	}
 
-	public void setRequestContent(String requestContent)
-	{
-		this.requestContent = requestContent;
-	}
-
-	public HttpResponse getResponse() 
+	public Response getResponse() 
 	{
 		return response;
 	}
 
-	public void setResponse(HttpResponse httpResponse) 
+	public void setResponse(Response response) 
 	{
-		this.response = httpResponse;
+		this.response = response;
 	}
 
-	public String getResponseContent() 
+	public String getResponseContent()
 	{
-		return responseContent;
-	}
-
-	public void setResponseContent(String responseContent) 
-	{
-		this.responseContent = responseContent;
+		return response.getContent();
 	}
 }

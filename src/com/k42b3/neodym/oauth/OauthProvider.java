@@ -1,10 +1,8 @@
 /**
- * $Id: OauthProvider.java 205 2011-12-18 18:12:33Z k42b3.x@gmail.com $
- * 
  * neodym
  * A java library to access the REST API of amun
  * 
- * Copyright (c) 2011 Christoph Kappestein <k42b3.x@gmail.com>
+ * Copyright (c) 2011-2013 Christoph Kappestein <k42b3.x@gmail.com>
  * 
  * This file is part of neodym. neodym is free software: you can 
  * redistribute it and/or modify it under the terms of the GNU 
@@ -23,16 +21,15 @@
 package com.k42b3.neodym.oauth;
 
 import com.k42b3.neodym.Http;
-import com.k42b3.neodym.ServiceItem;
+import com.k42b3.neodym.Service;
 import com.k42b3.neodym.Services;
 
 /**
  * OauthProvider
  *
- * @author     Christoph Kappestein <k42b3.x@gmail.com>
- * @license    http://www.gnu.org/licenses/gpl.html GPLv3
- * @link       http://code.google.com/p/delta-quadrant
- * @version    $Revision: 205 $
+ * @author  Christoph Kappestein <k42b3.x@gmail.com>
+ * @license http://www.gnu.org/licenses/gpl.html GPLv3
+ * @link    https://github.com/k42b3/neodym
  */
 public class OauthProvider 
 {
@@ -150,9 +147,9 @@ public class OauthProvider
 		Services services = new Services(http, baseUrl);
 		services.discover();
 
-		ServiceItem request = services.getItem("http://oauth.net/core/1.0/endpoint/request");
-		ServiceItem authorization = services.getItem("http://oauth.net/core/1.0/endpoint/authorize");
-		ServiceItem access = services.getItem("http://oauth.net/core/1.0/endpoint/access");
+		Service request = services.getService("http://oauth.net/core/1.0/endpoint/request");
+		Service authorization = services.getService("http://oauth.net/core/1.0/endpoint/authorize");
+		Service access = services.getService("http://oauth.net/core/1.0/endpoint/access");
 
 		if(request == null)
 		{

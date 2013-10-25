@@ -18,55 +18,66 @@
  * along with neodym. If not, see <http://www.gnu.org/licenses/>.
  */
 
-package com.k42b3.neodym.webfinger;
+package com.k42b3.neodym;
 
-import org.w3c.dom.Document;
-import org.w3c.dom.Element;
-import org.w3c.dom.NodeList;
+import java.io.IOException;
+
+import org.apache.http.Header;
+import org.apache.http.HttpResponse;
+import org.apache.http.ParseException;
+import org.apache.http.StatusLine;
+import org.apache.http.util.EntityUtils;
 
 /**
- * HostMeta
+ * Response
  *
  * @author  Christoph Kappestein <k42b3.x@gmail.com>
  * @license http://www.gnu.org/licenses/gpl.html GPLv3
  * @link    https://github.com/k42b3/neodym
  */
-public class HostMeta 
+public class Response
 {
-	private Document doc;
+	protected HttpResponse response;
+	protected String content;
 
-	public HostMeta(Document doc) throws Exception
+	public Response(HttpResponse response)
 	{
-		if(!doc.getNamespaceURI().equals("http://docs.oasis-open.org/ns/xri/xrd-1.0"))
-		{
-			throw new Exception("Invalid host meta namespace");
-		}
-
-		this.doc = doc;
+		this.response = response;
+	}
+	
+	public StatusLine getStatusLine()
+	{
+		return response.getStatusLine();
 	}
 
-	public Document getDocument()
+	public Header[] getAllHeaders()
 	{
-		return doc;
+		return response.getAllHeaders();
+	}
+	
+	public HttpResponse getResponse()
+	{
+		return response;
 	}
 
-	public String getTemplate()
+	public String getContent()
 	{
-		NodeList links = doc.getElementsByTagName("Link");
-
-		if(links.getLength() > 0)
+		if(content == null)
 		{
-			for(int i = 0; i < links.getLength(); i++)
+			try
 			{
-				Element link = (Element) links.item(i);
-
-				if(link.getAttribute("rel").equals("lrdd") && link.getAttribute("type").equals("application/xrd+xml"))
-				{
-					return link.getAttribute("template");
-				}
+				content = EntityUtils.toString(response.getEntity());
+			}
+			catch(ParseException e)
+			{
+				content = e.getMessage();
+			}
+			catch(IOException e)
+			{
+				content = e.getMessage();
 			}
 		}
 
-		return null;
+		return content;
 	}
 }

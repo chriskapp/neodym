@@ -1,10 +1,8 @@
 /**
- * $Id: Services.java 221 2012-03-31 18:57:33Z k42b3.x@gmail.com $
- * 
  * neodym
  * A java library to access the REST API of amun
  * 
- * Copyright (c) 2011 Christoph Kappestein <k42b3.x@gmail.com>
+ * Copyright (c) 2011-2013 Christoph Kappestein <k42b3.x@gmail.com>
  * 
  * This file is part of neodym. neodym is free software: you can 
  * redistribute it and/or modify it under the terms of the GNU 
@@ -31,20 +29,20 @@ import org.w3c.dom.Element;
 import org.w3c.dom.Node;
 import org.w3c.dom.NodeList;
 
+import com.k42b3.neodym.data.Endpoint;
+
 /**
  * Contains all discovered items of the XRDS
  *
- * @author     Christoph Kappestein <k42b3.x@gmail.com>
- * @license    http://www.gnu.org/licenses/gpl.html GPLv3
- * @link       http://code.google.com/p/delta-quadrant
- * @version    $Revision: 221 $
+ * @author  Christoph Kappestein <k42b3.x@gmail.com>
+ * @license http://www.gnu.org/licenses/gpl.html GPLv3
+ * @link    https://github.com/k42b3/neodym
  */
 public class Services
 {
 	private String baseUrl;
 	private Http http;
-
-	private ArrayList<ServiceItem> services = new ArrayList<ServiceItem>();
+	private ArrayList<Service> services = new ArrayList<Service>();
 
 	private Logger logger = Logger.getLogger("com.k42b3.neodym");
 
@@ -68,7 +66,7 @@ public class Services
 		}
 	}
 	
-	public ServiceItem getElementAt(int index) 
+	public Service getElementAt(int index) 
 	{
 		return services.get(index);
 	}
@@ -78,7 +76,7 @@ public class Services
 		return services.size();
 	}
 
-	public ServiceItem getItem(String type)
+	public Service getService(String type)
 	{
 		for(int i = 0; i < services.size(); i++)
 		{
@@ -91,13 +89,30 @@ public class Services
 		return null;
 	}
 
+	public Service getServiceByUri(String uri)
+	{
+		for(int i = 0; i < services.size(); i++)
+		{
+			if(services.get(i).getUri().equals(uri))
+			{
+				return services.get(i);
+			}
+		}
+
+		return null;
+	}
+
+	public Endpoint getEndpoint(String type) throws Exception
+	{
+		return new Endpoint(http, getService(type));
+	}
+
 	private String getXrdsUrl(String url) throws Exception
 	{
-		http.request(Http.GET, url, null, null, false);
-
+		Response response = http.requestNotSigned(Http.GET, url);
 
 		// find x-xrds-location header
-		Header[] headers = http.getLastResponse().getAllHeaders();
+		Header[] headers = response.getAllHeaders();
 		String xrdsLocation = null;
 
 		for(int i = 0; i < headers.length; i++)
@@ -121,7 +136,6 @@ public class Services
 		// request
 		Document doc = http.requestXml(Http.GET, url);
 
-
 		// parse services
 		NodeList serviceList = doc.getElementsByTagName("Service");
 
@@ -144,7 +158,7 @@ public class Services
 
 				String uri = uriElement.getTextContent();
 
-				services.add(new ServiceItem(uri, types));
+				services.add(new Service(uri, types));
 			}
 		}
 

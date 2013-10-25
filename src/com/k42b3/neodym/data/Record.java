@@ -18,55 +18,48 @@
  * along with neodym. If not, see <http://www.gnu.org/licenses/>.
  */
 
-package com.k42b3.neodym.webfinger;
+package com.k42b3.neodym.data;
 
-import org.w3c.dom.Document;
-import org.w3c.dom.Element;
-import org.w3c.dom.NodeList;
+import java.text.ParseException;
+import java.text.SimpleDateFormat;
+import java.util.Date;
+import java.util.LinkedHashMap;
 
 /**
- * HostMeta
+ * Record
  *
  * @author  Christoph Kappestein <k42b3.x@gmail.com>
  * @license http://www.gnu.org/licenses/gpl.html GPLv3
  * @link    https://github.com/k42b3/neodym
  */
-public class HostMeta 
+public class Record extends LinkedHashMap<String, String>
 {
-	private Document doc;
-
-	public HostMeta(Document doc) throws Exception
+	public String getStringField(String key)
 	{
-		if(!doc.getNamespaceURI().equals("http://docs.oasis-open.org/ns/xri/xrd-1.0"))
-		{
-			throw new Exception("Invalid host meta namespace");
-		}
-
-		this.doc = doc;
+		return get(key);
 	}
-
-	public Document getDocument()
+	
+	public int getIntField(String key)
 	{
-		return doc;
+		return Integer.parseInt(get(key));
 	}
-
-	public String getTemplate()
+	
+	public float getFloatField(String key)
 	{
-		NodeList links = doc.getElementsByTagName("Link");
+		return Float.parseFloat(get(key));
+	}
+	
+	public Date getDateField(String key)
+	{
+		SimpleDateFormat sdf = new SimpleDateFormat("yyyy-MM-dd HH:mm:ss");
 
-		if(links.getLength() > 0)
+		try
 		{
-			for(int i = 0; i < links.getLength(); i++)
-			{
-				Element link = (Element) links.item(i);
-
-				if(link.getAttribute("rel").equals("lrdd") && link.getAttribute("type").equals("application/xrd+xml"))
-				{
-					return link.getAttribute("template");
-				}
-			}
+			return sdf.parse(get(key));
 		}
-
-		return null;
+		catch (ParseException e)
+		{
+			return null;
+		}
 	}
 }

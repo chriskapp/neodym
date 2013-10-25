@@ -1,10 +1,8 @@
 /**
- * $Id: Oauth.java 207 2011-12-18 21:09:32Z k42b3.x@gmail.com $
- * 
  * neodym
  * A java library to access the REST API of amun
  * 
- * Copyright (c) 2011 Christoph Kappestein <k42b3.x@gmail.com>
+ * Copyright (c) 2011-2013 Christoph Kappestein <k42b3.x@gmail.com>
  * 
  * This file is part of neodym. neodym is free software: you can 
  * redistribute it and/or modify it under the terms of the GNU 
@@ -33,7 +31,6 @@ import java.util.Collections;
 import java.util.HashMap;
 import java.util.Iterator;
 import java.util.List;
-import java.util.Map;
 import java.util.Map.Entry;
 import java.util.Random;
 import java.util.Set;
@@ -42,31 +39,23 @@ import java.util.logging.Logger;
 import javax.swing.JOptionPane;
 
 import org.apache.commons.codec.digest.DigestUtils;
+import org.apache.http.Header;
 import org.apache.http.HttpEntity;
-import org.apache.http.HttpResponse;
-import org.apache.http.client.methods.HttpGet;
+import org.apache.http.NameValuePair;
 import org.apache.http.client.methods.HttpPost;
 import org.apache.http.client.methods.HttpRequestBase;
-import org.apache.http.entity.mime.HttpMultipartMode;
-import org.apache.http.entity.mime.MultipartEntity;
-import org.apache.http.entity.mime.content.StringBody;
-import org.apache.http.impl.client.DefaultHttpClient;
-import org.apache.http.params.BasicHttpParams;
-import org.apache.http.params.HttpConnectionParams;
-import org.apache.http.params.HttpParams;
-import org.apache.http.util.EntityUtils;
+import org.apache.http.client.utils.URLEncodedUtils;
 
 import com.k42b3.neodym.Http;
-import com.k42b3.neodym.TrafficItem;
+import com.k42b3.neodym.Response;
 import com.k42b3.neodym.TrafficListenerInterface;
 
 /**
  * Oauth
  *
- * @author     Christoph Kappestein <k42b3.x@gmail.com>
- * @license    http://www.gnu.org/licenses/gpl.html GPLv3
- * @link       http://code.google.com/p/delta-quadrant
- * @version    $Revision: 207 $
+ * @author  Christoph Kappestein <k42b3.x@gmail.com>
+ * @license http://www.gnu.org/licenses/gpl.html GPLv3
+ * @link    https://github.com/k42b3/neodym
  */
 public class Oauth 
 {
@@ -141,15 +130,12 @@ public class Oauth
 		values.put("oauth_version", this.getVersion());
 		values.put("oauth_callback", "oob");
 
-
 		// add get vars to values
 		URL requestUrl = new URL(provider.getRequestUrl());
 		values.putAll(parseQuery(requestUrl.getQuery()));
 
-
 		// build base string
 		String baseString = this.buildBaseString(requestMethod, provider.getRequestUrl(), values);
-
 
 		// get signature
 		SignatureInterface signature = this.getSignature();
@@ -159,24 +145,21 @@ public class Oauth
 			throw new Exception("Invalid signature method");
 		}
 
-
 		// build signature
 		values.put("oauth_signature", signature.build(baseString, provider.getConsumerSecret(), ""));
-
 
 		// add header to request
 		HashMap<String, String> header = new HashMap<String, String>();
 		header.put("Authorization", "OAuth realm=\"neodym\", " + this.buildAuthString(values));
 
-		String responseContent = http.request(Http.POST, provider.getRequestUrl(), header);
-
+		Response resp = http.request(Http.POST, provider.getRequestUrl(), header);
 
 		// parse response
 		this.token = null;
 		this.tokenSecret = null;
 		this.callbackConfirmed = false;
 
-		HashMap<String, String> response = parseQuery(responseContent);
+		HashMap<String, String> response = parseQuery(resp.getContent());
 		Set<String> keys = response.keySet();
 
 		for(String key : keys)
@@ -273,15 +256,12 @@ public class Oauth
 		values.put("oauth_nonce", this.getNonce());
 		values.put("oauth_verifier", this.verificationCode);
 
-
 		// add get vars to values
 		URL accessUrl = new URL(provider.getAccessUrl());
 		values.putAll(parseQuery(accessUrl.getQuery()));
 
-
 		// build base string
 		String baseString = this.buildBaseString(requestMethod, provider.getAccessUrl(), values);
-
 
 		// get signature
 		SignatureInterface signature = this.getSignature();
@@ -291,23 +271,20 @@ public class Oauth
 			throw new Exception("Invalid signature method");
 		}
 
-
 		// build signature
 		values.put("oauth_signature", signature.build(baseString, provider.getConsumerSecret(), this.tokenSecret));
-
 
 		// add header to request
 		HashMap<String, String> header = new HashMap<String, String>();
 		header.put("Authorization", "OAuth realm=\"neodym\", " + this.buildAuthString(values));
 
-		String responseContent = http.request(Http.POST, provider.getAccessUrl(), header);
-
+		Response resp = http.request(Http.POST, provider.getAccessUrl(), header);
 
 		// parse response
 		this.token = null;
 		this.tokenSecret = null;
 
-		HashMap<String, String> response = parseQuery(responseContent);
+		HashMap<String, String> response = parseQuery(resp.getContent());
 		Set<String> keys = response.keySet();
 
 		for(String key : keys)
@@ -353,17 +330,35 @@ public class Oauth
 		values.put("oauth_timestamp", this.getTimestamp());
 		values.put("oauth_nonce", this.getNonce());
 
-
 		auth = (HashMap<String, String>) values.clone();
 
+		// add get vars
+		List<NameValuePair> gets = URLEncodedUtils.parse(request.getURI(), "UTF-8");
+		for(int i = 0; i < gets.size(); i++)
+		{
+			values.put(gets.get(i).getName(), gets.get(i).getValue());
+		}
 
-		// add get vars to values
-		values.putAll(parseQuery(request.getURI().getQuery()));
+		// add post vars
+		if(request instanceof HttpPost)
+		{
+			Header contentType = request.getFirstHeader("Content-Type");
 
+			if(contentType != null && contentType.getValue().toLowerCase().equals("application/x-www-form-urlencoded"))
+			{
+				HttpPost postRequest = (HttpPost) request;
+				HttpEntity entity = postRequest.getEntity();
+				List<NameValuePair> posts = URLEncodedUtils.parse(entity);
+
+				for(int i = 0; i < posts.size(); i++)
+				{
+					values.put(posts.get(i).getName(), posts.get(i).getValue());
+				}
+			}
+		}
 
 		// build base string
 		String baseString = this.buildBaseString(request.getMethod(), request.getURI().toString(), values);
-
 
 		// get signature
 		SignatureInterface signature = this.getSignature();
@@ -373,10 +368,8 @@ public class Oauth
 			throw new Exception("Invalid signature method");
 		}
 
-
 		// build signature
 		auth.put("oauth_signature", signature.build(baseString, provider.getConsumerSecret(), this.tokenSecret));
-
 
 		// add header to request
 		request.addHeader("Authorization", "OAuth realm=\"neodym\", " + this.buildAuthString(auth));
@@ -397,10 +390,8 @@ public class Oauth
 
 		String str = authString.toString();
 
-
 		// remove ", " from string
 		str = str.substring(0, str.length() - 2);
-
 
 		return str;
 	}
@@ -437,10 +428,8 @@ public class Oauth
 			keys.add(e.getKey());
 		}
 
-
 		// sort params
 		Collections.sort(keys);
-
 
 		// build normalized params
 		StringBuilder normalizedParams = new StringBuilder();
@@ -451,7 +440,6 @@ public class Oauth
 		}
 
 		String str = normalizedParams.toString();
-
 
 		// remove trailing &
 		str = str.substring(0, str.length() - 1);
@@ -512,82 +500,6 @@ public class Oauth
 	private String getVersion()
 	{
 		return "1.0";
-	}
-
-	@SuppressWarnings("unused")
-	private HttpEntity httpRequest(String method, String url, Map<String, String> header, String body) throws Exception
-	{
-		// build request
-		HttpParams httpParams = new BasicHttpParams();
-		HttpConnectionParams.setConnectionTimeout(httpParams, 6000);
-		DefaultHttpClient httpClient = new DefaultHttpClient(httpParams);
-
-
-		HttpRequestBase request;
-
-		if(method.equals("GET"))
-		{
-			request = new HttpGet(url);
-		}
-		else if(method.equals("POST"))
-		{
-			MultipartEntity entity = new MultipartEntity(HttpMultipartMode.BROWSER_COMPATIBLE);
-			entity.addPart("text", new StringBody(body)); 
-
-			request = new HttpPost(url);
-
-			((HttpPost) request).setEntity(entity);
-		}
-		else
-		{
-			throw new Exception("Invalid request method");
-		}
-
-
-		// header
-		Set<String> keys = header.keySet();
-
-		for(String key : keys)
-		{
-			request.setHeader(key, header.get(key));
-		}
-
-
-        // execute HTTP Get Request
-		logger.info("Request: " + request.getRequestLine());
-
-		HttpResponse httpResponse = httpClient.execute(request);
-
-		HttpEntity entity = httpResponse.getEntity();
-
-		String responseContent = EntityUtils.toString(entity);
-		
-
-		// log traffic
-		if(trafficListener != null)
-		{
-			TrafficItem trafficItem = new TrafficItem();
-
-			trafficItem.setRequest(request);
-			trafficItem.setResponse(httpResponse);
-			trafficItem.setResponseContent(responseContent);
-
-			trafficListener.handleRequest(trafficItem);
-		}
-
-
-		// check status code
-		int statusCode = httpResponse.getStatusLine().getStatusCode();
-
-		if(!(statusCode >= 200 && statusCode < 300))
-		{
-			JOptionPane.showMessageDialog(null, responseContent);
-
-			throw new Exception("No successful status code");
-		}
-
-
-		return entity;
 	}
 
 	private SignatureInterface getSignature() throws Exception

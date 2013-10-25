@@ -1,10 +1,8 @@
 /**
- * $Id: Http.java 227 2012-04-29 12:54:26Z k42b3.x@gmail.com $
- * 
  * neodym
  * A java library to access the REST API of amun
  * 
- * Copyright (c) 2011 Christoph Kappestein <k42b3.x@gmail.com>
+ * Copyright (c) 2011-2013 Christoph Kappestein <k42b3.x@gmail.com>
  * 
  * This file is part of neodym. neodym is free software: you can 
  * redistribute it and/or modify it under the terms of the GNU 
@@ -23,8 +21,6 @@
 package com.k42b3.neodym;
 
 import java.io.StringReader;
-import java.text.DateFormat;
-import java.util.Date;
 import java.util.HashMap;
 import java.util.Map;
 import java.util.Set;
@@ -33,19 +29,15 @@ import java.util.logging.Logger;
 import javax.xml.parsers.DocumentBuilder;
 import javax.xml.parsers.DocumentBuilderFactory;
 
-import org.apache.http.Header;
 import org.apache.http.HttpEntity;
 import org.apache.http.HttpRequest;
 import org.apache.http.HttpResponse;
 import org.apache.http.client.methods.HttpGet;
 import org.apache.http.client.methods.HttpPost;
 import org.apache.http.client.methods.HttpRequestBase;
-import org.apache.http.entity.StringEntity;
-import org.apache.http.impl.client.DefaultHttpClient;
-import org.apache.http.params.BasicHttpParams;
-import org.apache.http.params.HttpConnectionParams;
-import org.apache.http.params.HttpParams;
-import org.apache.http.util.EntityUtils;
+import org.apache.http.entity.BufferedHttpEntity;
+import org.apache.http.impl.client.CloseableHttpClient;
+import org.apache.http.impl.client.HttpClients;
 import org.w3c.dom.Document;
 import org.w3c.dom.Element;
 import org.xml.sax.InputSource;
@@ -54,18 +46,11 @@ import org.xml.sax.SAXException;
 import com.k42b3.neodym.oauth.Oauth;
 
 /**
- * Handles http requests. If an oauth object is set you can also send signed
- * requests. Here an simple example code howto use the http class
- * 
- * <code>
- * Http http = new Http();
- * String response = http.request(Http.GET, "http://google.de");
- * </code>
+ * Http
  *
- * @author     Christoph Kappestein <k42b3.x@gmail.com>
- * @license    http://www.gnu.org/licenses/gpl.html GPLv3
- * @link       http://code.google.com/p/delta-quadrant
- * @version    $Revision: 227 $
+ * @author  Christoph Kappestein <k42b3.x@gmail.com>
+ * @license http://www.gnu.org/licenses/gpl.html GPLv3
+ * @link    https://github.com/k42b3/neodym
  */
 public class Http 
 {
@@ -74,10 +59,9 @@ public class Http
 
 	private Oauth oauth;
 	private TrafficListenerInterface trafficListener;
-	private CacheManager cacheManager = new CacheManager();
 
 	private HttpRequest lastRequest;
-	private HttpResponse lastResponse;
+	private Response lastResponse;
 	
 	private Logger logger = Logger.getLogger("com.k42b3.neodym");
 
@@ -91,29 +75,10 @@ public class Http
 		this(null);
 	}
 
-	public String request(int method, String url, Map<String, String> header, String body, boolean signed) throws Exception
+	public Response request(int method, String url, Map<String, String> header, HttpEntity body, boolean signed) throws Exception
 	{
-		// check cache (only GET)
-		String cacheKey = url;
-
-		if(method == Http.GET)
-		{
-			Cache cache = cacheManager.get(cacheKey);
-
-			if(cache != null)
-			{
-				logger.info("Found cache for " + cacheKey + " expires in " + DateFormat.getInstance().format(cache.getExpire()));
-
-				return cache.getResponse();
-			}
-		}
-
-
 		// build request
-		HttpParams httpParams = new BasicHttpParams();
-		HttpConnectionParams.setConnectionTimeout(httpParams, 6000);
-		DefaultHttpClient httpClient = new DefaultHttpClient(httpParams);
-
+		CloseableHttpClient httpClient = HttpClients.createDefault();
 		HttpRequestBase httpRequest;
 
 		if(method == Http.GET)
@@ -124,16 +89,15 @@ public class Http
 		{
 			httpRequest = new HttpPost(url);
 
-			if(body != null && !body.isEmpty())
+			if(body != null)
 			{
-				((HttpPost) httpRequest).setEntity(new StringEntity(body));
+				((HttpPost) httpRequest).setEntity(new BufferedHttpEntity(body));
 			}
 		}
 		else
 		{
 			throw new Exception("Invalid request method");
 		}
-
 
 		// add headers
 		if(header != null)
@@ -146,49 +110,36 @@ public class Http
 			}
 		}
 
-
 		// sign request
 		if(oauth != null && signed)
 		{
 			oauth.signRequest(httpRequest);
 		}
 
-
 		// execute request
 		logger.info("Request: " + httpRequest.getRequestLine().toString());
 
 		HttpResponse httpResponse = httpClient.execute(httpRequest);
-
+		Response response = new Response(httpResponse);
+		
 		logger.info("Response: " + httpResponse.getStatusLine().toString());
-
-		HttpEntity entity = httpResponse.getEntity();
-		String responseContent = EntityUtils.toString(entity);
-
 
 		// log traffic
 		if(trafficListener != null)
 		{
-			TrafficItem trafficItem = new TrafficItem();
-
-			trafficItem.setRequest(httpRequest);
-			trafficItem.setRequestContent(body);
-			trafficItem.setResponse(httpResponse);
-			trafficItem.setResponseContent(responseContent);
-
-			trafficListener.handleRequest(trafficItem);
+			trafficListener.handleRequest(new TrafficItem(httpRequest, response));
 		}
-
 
 		// check status code
 		int statusCode = httpResponse.getStatusLine().getStatusCode();
 
 		if(!(statusCode >= 200 && statusCode < 300))
 		{
-			if(!responseContent.isEmpty())
-			{
-				String message = responseContent.length() > 128 ? responseContent.substring(0, 128) + "..." : responseContent;
+			String resp = response.getContent();
 
-				throw new Exception(message);
+			if(!resp.isEmpty())
+			{
+				throw new Exception(resp.length() > 128 ? resp.substring(0, 128) + "..." : resp);
 			}
 			else
 			{
@@ -196,77 +147,51 @@ public class Http
 			}
 		}
 
-
 		// assign last request/response
 		lastRequest = httpRequest;
-		lastResponse = httpResponse;
+		lastResponse = response;
 
-
-		// cache response if expires header is set
-		if(method == Http.GET)
-		{
-			Date expire = null;
-			Header[] headers = httpResponse.getAllHeaders();
-
-			for(int i = 0; i < headers.length; i++)
-			{
-				if(headers[i].getName().toLowerCase().equals("expires"))
-				{
-					try
-					{
-						expire = DateFormat.getInstance().parse(headers[i].getValue());
-					}
-					catch(Exception e)
-					{
-					}
-				}
-			}
-
-			if(expire != null && expire.compareTo(new Date()) > 0)
-			{
-				Cache cache = new Cache(cacheKey, responseContent, expire);
-
-				cacheManager.add(cache);
-
-				logger.info("Add to cache " + cacheKey + " expires in " + DateFormat.getInstance().format(expire));
-			}
-		}
-
-
-		return responseContent;
+		return response;
 	}
 
-	public String request(int method, String url, Map<String, String> header, String body) throws Exception
+	/*
+	public String request(int method, String url, Map<String, String> header, String body, boolean signed) throws Exception
+	{
+		return this.request(method, url, header, new StringEntity(body), true);
+	}
+	*/
+
+	public Response request(int method, String url, Map<String, String> header, HttpEntity body) throws Exception
 	{
 		return this.request(method, url, header, body, true);
 	}
 
-	public String request(int method, String url, Map<String, String> header) throws Exception
+	public Response request(int method, String url, Map<String, String> header) throws Exception
 	{
 		return this.request(method, url, header, null, true);
 	}
 
-	public String request(int method, String url) throws Exception
+	public Response request(int method, String url) throws Exception
 	{
-		return this.request(method, url, null, null, true);
+		return this.request(method, url, null);
 	}
 
-	public String requestNotSigned(int method, String url, Map<String, String> header, String body) throws Exception
+	public Response requestNotSigned(int method, String url, Map<String, String> header, HttpEntity body) throws Exception
 	{
 		return this.request(method, url, header, body, false);
 	}
 
-	public String requestNotSigned(int method, String url, Map<String, String> header) throws Exception
+	public Response requestNotSigned(int method, String url, Map<String, String> header) throws Exception
 	{
 		return this.requestNotSigned(method, url, header, null);
 	}
 
-	public String requestNotSigned(int method, String url) throws Exception
+	public Response requestNotSigned(int method, String url) throws Exception
 	{
 		return this.requestNotSigned(method, url, null);
 	}
 
-	public Document requestXml(int method, String url, Map<String, String> header, String body, boolean signed) throws Exception
+	public Document requestXml(int method, String url, Map<String, String> header, HttpEntity body, boolean signed) throws Exception
 	{
 		// request
 		if(header == null)
@@ -279,8 +204,8 @@ public class Http
 			header.put("Accept", "application/xml");
 		}
 
-		String responseContent = this.request(method, url, header, body, signed);
-
+		Response response = this.request(method, url, header, body, signed);
+		String xml = response.getContent();
 
 		try
 		{
@@ -289,29 +214,28 @@ public class Http
 			DocumentBuilder db = dbf.newDocumentBuilder();
 
 			InputSource is = new InputSource();
-			is.setCharacterStream(new StringReader(responseContent));
+			is.setCharacterStream(new StringReader(xml));
 
 			Document doc = db.parse(is);
 
 			Element rootElement = (Element) doc.getDocumentElement();
 			rootElement.normalize();
 
-
 			return doc;
 		}
 		catch(SAXException e)
 		{
-			String text = responseContent.length() > 32 ? responseContent.substring(0, 32) + "..." : responseContent;
+			String text = xml.length() > 32 ? xml.substring(0, 32) + "..." : xml;
 
 			throw new Exception(text);
 		}
 	}
 
-	public Document requestXml(int method, String url, Map<String, String> header, String body) throws Exception
+	public Document requestXml(int method, String url, Map<String, String> header, HttpEntity body) throws Exception
 	{
 		return this.requestXml(method, url, header, body, true);
 	}
-
+	
 	public Document requestXml(int method, String url, Map<String, String> header) throws Exception
 	{
 		return this.requestXml(method, url, header, null);
@@ -322,7 +246,7 @@ public class Http
 		return this.requestXml(method, url, null);
 	}
 
-	public Document requestNotSignedXml(int method, String url, Map<String, String> header, String body) throws Exception
+	public Document requestNotSignedXml(int method, String url, Map<String, String> header, HttpEntity body) throws Exception
 	{
 		return this.requestXml(method, url, header, body, false);
 	}
@@ -342,7 +266,7 @@ public class Http
 		return lastRequest;
 	}
 
-	public HttpResponse getLastResponse()
+	public Response getLastResponse()
 	{
 		return lastResponse;
 	}
@@ -365,11 +289,6 @@ public class Http
 	public TrafficListenerInterface getTrafficListener()
 	{
 		return trafficListener;
-	}
-
-	public CacheManager getCacheManager()
-	{
-		return cacheManager;
 	}
 
 	public static String appendQuery(String url, String query)
