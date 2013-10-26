@@ -68,7 +68,6 @@ public class Oauth
 	private String verificationCode;
 
 	private boolean authed = false;
-	private TrafficListenerInterface trafficListener;
 
 	private Logger logger = Logger.getLogger("com.k42b3.neodym");
 

@@ -64,7 +64,10 @@ public class TrafficItem
 			{
 				HttpEntity entity = ((HttpEntityEnclosingRequest) request).getEntity();
 				
-				return EntityUtils.toString(entity);
+				if(entity != null)
+				{
+					return EntityUtils.toString(entity);
+				}
 			}
 			catch(ParseException e)
 			{
