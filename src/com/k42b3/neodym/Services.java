@@ -104,7 +104,16 @@ public class Services
 
 	public Endpoint getEndpoint(String type) throws Exception
 	{
-		return new Endpoint(http, getService(type));
+		Service service = getService(type);
+		
+		if(service != null)
+		{
+			return new Endpoint(http, service);			
+		}
+		else
+		{
+			throw new Exception("Could not find service " + type);
+		}
 	}
 
 	private String getXrdsUrl(String url) throws Exception
