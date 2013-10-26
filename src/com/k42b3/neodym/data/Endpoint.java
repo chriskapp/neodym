@@ -25,6 +25,7 @@ import java.net.URLEncoder;
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.Iterator;
+import java.util.List;
 import java.util.Map.Entry;
 
 import javax.xml.parsers.DocumentBuilder;
@@ -54,22 +55,27 @@ import com.k42b3.neodym.Service;
 public class Endpoint
 {
 	protected Http http;
-	protected Service item;
+	protected Service service;
 	
-	public Endpoint(Http http, Service item) throws Exception
+	public Endpoint(Http http, Service service) throws Exception
 	{
 		this.http = http;
-		this.item = item;
+		this.service = service;
 		
-		if(!item.getTypes().contains("http://ns.amun-project.org/2011/amun/data/1.0"))
+		if(!service.getTypes().contains("http://ns.amun-project.org/2011/amun/data/1.0"))
 		{
 			throw new Exception("Not an amun data type endpoint");
 		}
 	}
 
-	public ResultSet getAll(ArrayList<String> fields, int startIndex, int count, String filterBy, String filterOp, String filterValue) throws Exception
+	public Service getService()
 	{
-		String url = item.getUri();
+		return service;
+	}
+
+	public ResultSet getAll(List<String> fields, int startIndex, int count, String filterBy, String filterOp, String filterValue) throws Exception
+	{
+		String url = service.getUri();
 
 		if(fields != null)
 		{
@@ -154,15 +160,15 @@ public class Endpoint
 		return result;
 	}
 	
-	public ResultSet getAll(ArrayList<String> fields, int startIndex, int count) throws Exception
+	public ResultSet getAll(List<String> fields, int startIndex, int count) throws Exception
 	{
 		return getAll(fields, startIndex, count, null, null, null);
 	}
 
-	public ArrayList<String> getSupportedFields() throws Exception
+	public List<String> getSupportedFields() throws Exception
 	{
 		ArrayList<String> fields = new ArrayList<String>();
-		Document response = http.requestXml(Http.GET, item.getUri() + "/@supportedFields");
+		Document response = http.requestXml(Http.GET, service.getUri() + "/@supportedFields");
 		NodeList items = response.getElementsByTagName("item");
 		
 		for(int i = 0; i < items.getLength(); i++)
@@ -172,23 +178,23 @@ public class Endpoint
 		
 		return fields;
 	}
-	
-	public void create(Record record) throws Exception
+
+	public Message create(Record record) throws Exception
 	{
-		sendRequest("POST", record);
+		return sendRequest("POST", record);
 	}
 	
-	public void update(Record record) throws Exception
+	public Message update(Record record) throws Exception
 	{
-		sendRequest("PUT", record);
+		return sendRequest("PUT", record);
 	}
 	
-	public void delete(Record record) throws Exception
+	public Message delete(Record record) throws Exception
 	{
-		sendRequest("DELETE", record);
+		return sendRequest("DELETE", record);
 	}
-	
-	protected void sendRequest(String method, Record record) throws Exception
+
+	protected Message sendRequest(String method, Record record) throws Exception
 	{
 		DocumentBuilderFactory dbf = DocumentBuilderFactory.newInstance();
 		DocumentBuilder db = dbf.newDocumentBuilder();
@@ -226,14 +232,9 @@ public class Endpoint
 		header.put("Content-Type", "application/xml");
 		header.put("X-HTTP-Method-Override", method);
 		
-		Document response = http.requestXml(Http.POST, item.getUri(), header, new StringEntity(xml));
+		Document response = http.requestXml(Http.POST, service.getUri(), header, new StringEntity(xml));
 		
 		// parse response
-		Message msg = Message.parseMessage(response.getDocumentElement());
-
-		if(!msg.hasSuccess())
-		{
-			throw new Exception(msg.getText());
-		}
+		return Message.parseMessage(response.getDocumentElement());
 	}
 }

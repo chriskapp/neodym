@@ -39,6 +39,11 @@ public class Record extends LinkedHashMap<String, String>
 		return get(key);
 	}
 	
+	public boolean getBooleanField(String key)
+	{
+		return Boolean.parseBoolean(get(key));
+	}
+	
 	public int getIntField(String key)
 	{
 		return Integer.parseInt(get(key));
