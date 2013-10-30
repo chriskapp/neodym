@@ -20,6 +20,7 @@
 
 package com.k42b3.neodym.data;
 
+import org.w3c.dom.Document;
 import org.w3c.dom.Element;
 import org.w3c.dom.NodeList;
 
@@ -32,23 +33,18 @@ import org.w3c.dom.NodeList;
  */
 public class Message 
 {
-	private String text = "";
-	private boolean success = true;
+	private String text;
+	private boolean success;
 
-	public Message(String text, boolean success)
+	public Message(boolean success, String text)
 	{
-		this.setText(text);
 		this.setSuccess(success);
+		this.setText(text);
 	}
 
-	public String getText() 
+	public Message(boolean success)
 	{
-		return text;
-	}
-
-	public void setText(String text) 
-	{
-		this.text = text;
+		this(success, null);
 	}
 
 	public boolean getSuccess() 
@@ -66,34 +62,47 @@ public class Message
 		return success;
 	}
 	
-	public static Message parseMessage(Element element)
+	public String getText() 
 	{
-		NodeList childs = element.getChildNodes();
+		return text == null || text.isEmpty() ? "No message available" : text;
+	}
 
-		String text = null;
+	public void setText(String text) 
+	{
+		this.text = text;
+	}
+
+	public static Message parseMessage(Document document)
+	{
+		NodeList childs = document.getDocumentElement().getChildNodes();
+
+		boolean isMessage = false;
 		boolean success = false;
+		String text = "";
 
 		for(int i = 0; i < childs.getLength(); i++)
 		{
 			if(childs.item(i) instanceof Element)
 			{
 				Element el = (Element) childs.item(i);
-				
-				if(el.getNodeName().equals("text"))
+
+				if(el.getNodeName().equals("text") || el.getNodeName().equals("message"))
 				{
 					text = el.getTextContent();
 				}
 
 				if(el.getNodeName().equals("success"))
 				{
+					isMessage = true;
+
 					success = Boolean.parseBoolean(el.getTextContent());
 				}
 			}
 		}
 
-		if(text != null && !text.isEmpty())
+		if(isMessage)
 		{
-			return new Message(text, success);
+			return new Message(success, text);
 		}
 
 		return null;

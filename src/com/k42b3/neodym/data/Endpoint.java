@@ -62,6 +62,11 @@ public class Endpoint
 		this.http = http;
 		this.service = service;
 		
+		if(service == null)
+		{
+			throw new Exception("Service not available");
+		}
+
 		if(!service.getTypes().contains("http://ns.amun-project.org/2011/amun/data/1.0"))
 		{
 			throw new Exception("Not an amun data type endpoint");
@@ -235,6 +240,6 @@ public class Endpoint
 		Document response = http.requestXml(Http.POST, service.getUri(), header, new StringEntity(xml));
 		
 		// parse response
-		return Message.parseMessage(response.getDocumentElement());
+		return Message.parseMessage(response);
 	}
 }

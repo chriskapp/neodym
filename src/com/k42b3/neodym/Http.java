@@ -123,7 +123,7 @@ public class Http
 		Response response = new Response(httpResponse);
 		
 		logger.info("Response: " + httpResponse.getStatusLine().toString());
-
+		
 		// log traffic
 		if(trafficListener != null)
 		{
@@ -131,6 +131,7 @@ public class Http
 		}
 
 		// check status code
+		/*
 		int statusCode = httpResponse.getStatusLine().getStatusCode();
 
 		if(!(statusCode >= 200 && statusCode < 300))
@@ -139,13 +140,14 @@ public class Http
 
 			if(!resp.isEmpty())
 			{
-				throw new Exception(resp.length() > 128 ? resp.substring(0, 128) + "..." : resp);
+				throw new Exception(resp);
 			}
 			else
 			{
 				throw new Exception("No successful status code");
 			}
 		}
+		*/
 
 		// assign last request/response
 		lastRequest = httpRequest;
