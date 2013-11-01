@@ -154,7 +154,7 @@ public class Endpoint
 				{
 					String key = childs.item(j).getNodeName();
 					String value = childs.item(j).getTextContent();
-					
+
 					record.put(key, value);
 				}
 			}
