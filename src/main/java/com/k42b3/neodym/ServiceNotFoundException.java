@@ -18,16 +18,19 @@
  * along with neodym. If not, see <http://www.gnu.org/licenses/>.
  */
 
-package com.k42b3.neodym.oauth;
+package com.k42b3.neodym;
 
 /**
- * SignatureInterface
+ * ServiceNotFoundException
  *
  * @author  Christoph Kappestein <k42b3.x@gmail.com>
  * @license http://www.gnu.org/licenses/gpl.html GPLv3
  * @link    https://github.com/k42b3/neodym
  */
-public interface SignatureInterface 
+public class ServiceNotFoundException extends Exception
 {
-	public String build(String baseString, String consumerSecret, String tokenSecret) throws Exception;
+	public ServiceNotFoundException(String message)
+	{
+		super(message);
+	}
 }

@@ -21,7 +21,11 @@
 package com.k42b3.neodym.oauth;
 
 import java.awt.Desktop;
+import java.io.IOException;
+import java.io.UnsupportedEncodingException;
+import java.net.MalformedURLException;
 import java.net.URI;
+import java.net.URISyntaxException;
 import java.net.URL;
 import java.net.URLDecoder;
 import java.net.URLEncoder;
@@ -48,7 +52,6 @@ import org.apache.http.client.utils.URLEncodedUtils;
 
 import com.k42b3.neodym.Http;
 import com.k42b3.neodym.Response;
-import com.k42b3.neodym.TrafficListenerInterface;
 
 /**
  * Oauth
@@ -115,7 +118,7 @@ public class Oauth
 		return authed;
 	}
 
-	public boolean requestToken() throws Exception
+	public boolean requestToken() throws MalformedURLException, UnsupportedEncodingException, SignatureException, IOException, InvalidResponseException
 	{
 		// add values
 		HashMap<String, String> values = new HashMap<String, String>();
@@ -138,11 +141,6 @@ public class Oauth
 
 		// get signature
 		SignatureInterface signature = this.getSignature();
-
-		if(signature == null)
-		{
-			throw new Exception("Invalid signature method");
-		}
 
 		// build signature
 		values.put("oauth_signature", signature.build(baseString, provider.getConsumerSecret(), ""));
@@ -187,23 +185,23 @@ public class Oauth
 
 		if(this.token == null)
 		{
-			throw new Exception("No oauth token received");
+			throw new InvalidResponseException("No oauth token received");
 		}
 
 		if(this.tokenSecret == null)
 		{
-			throw new Exception("No oauth token secret received");
+			throw new InvalidResponseException("No oauth token secret received");
 		}
 
 		if(this.callbackConfirmed != true)
 		{
-			throw new Exception("Callback was not confirmed");
+			throw new InvalidResponseException("Callback was not confirmed");
 		}
 
 		return true;
 	}
 
-	public boolean authorizeToken() throws Exception
+	public boolean authorizeToken() throws URISyntaxException, IOException
 	{
 		String url;
 
@@ -241,7 +239,7 @@ public class Oauth
 		return true;
 	}
 
-	public boolean accessToken() throws Exception
+	public boolean accessToken() throws MalformedURLException, UnsupportedEncodingException, SignatureException, IOException, InvalidResponseException
 	{
 		// add values
 		HashMap<String, String> values = new HashMap<String, String>();
@@ -264,11 +262,6 @@ public class Oauth
 
 		// get signature
 		SignatureInterface signature = this.getSignature();
-
-		if(signature == null)
-		{
-			throw new Exception("Invalid signature method");
-		}
 
 		// build signature
 		values.put("oauth_signature", signature.build(baseString, provider.getConsumerSecret(), this.tokenSecret));
@@ -305,19 +298,19 @@ public class Oauth
 
 		if(this.token == null)
 		{
-			throw new Exception("No oauth token received");
+			throw new InvalidResponseException("No oauth token received");
 		}
 
 		if(this.tokenSecret == null)
 		{
-			throw new Exception("No oauth token secret received");
+			throw new InvalidResponseException("No oauth token secret received");
 		}
 
 		return true;
 	}
 
 	@SuppressWarnings("unchecked")
-	public void signRequest(HttpRequestBase request) throws Exception
+	public void signRequest(HttpRequestBase request) throws IOException, SignatureException
 	{
 		// add values
 		HashMap<String, String> values = new HashMap<String, String>();
@@ -364,7 +357,7 @@ public class Oauth
 
 		if(signature == null)
 		{
-			throw new Exception("Invalid signature method");
+			throw new IllegalArgumentException("Invalid signature method");
 		}
 
 		// build signature
@@ -395,7 +388,7 @@ public class Oauth
 		return str;
 	}
 
-	private String buildBaseString(String requestMethod, String url, HashMap<String, String> params) throws Exception
+	private String buildBaseString(String requestMethod, String url, HashMap<String, String> params) throws MalformedURLException
 	{
 		StringBuilder base = new StringBuilder();
 
@@ -447,7 +440,7 @@ public class Oauth
 		return str;
 	}
 
-	private String getNormalizedUrl(String rawUrl) throws Exception
+	private String getNormalizedUrl(String rawUrl) throws MalformedURLException
 	{
 		rawUrl = rawUrl.toLowerCase();
 
@@ -501,7 +494,7 @@ public class Oauth
 		return "1.0";
 	}
 
-	private SignatureInterface getSignature() throws Exception
+	private SignatureInterface getSignature() throws SignatureException
 	{
 		String cls;
 
@@ -515,10 +508,25 @@ public class Oauth
 		}
 		else
 		{
-			throw new Exception("Invalid signature method");
+			throw new IllegalArgumentException("Invalid signature method");
 		}
 
-		return (SignatureInterface) Class.forName(cls).newInstance();
+		try
+		{
+			return (SignatureInterface) Class.forName(cls).newInstance();
+		}
+		catch(ClassNotFoundException e)
+		{
+			throw new SignatureException(e);
+		}
+		catch(IllegalAccessException e)
+		{
+			throw new SignatureException(e);
+		}
+		catch(InstantiationException e)
+		{
+			throw new SignatureException(e);
+		}
 	}
 
 	public static String urlEncode(String content)
@@ -544,7 +552,7 @@ public class Oauth
 		}
 	}
 
-	public static HashMap<String, String> parseQuery(String query) throws Exception
+	public static HashMap<String, String> parseQuery(String query) throws UnsupportedEncodingException
 	{
 		HashMap<String, String> map = new HashMap<String, String>();
 

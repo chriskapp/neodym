@@ -20,6 +20,7 @@
 
 package com.k42b3.neodym;
 
+import java.io.IOException;
 import java.io.StringReader;
 import java.util.HashMap;
 import java.util.Map;
@@ -28,6 +29,7 @@ import java.util.logging.Logger;
 
 import javax.xml.parsers.DocumentBuilder;
 import javax.xml.parsers.DocumentBuilderFactory;
+import javax.xml.parsers.ParserConfigurationException;
 
 import org.apache.http.HttpEntity;
 import org.apache.http.HttpRequest;
@@ -44,6 +46,7 @@ import org.xml.sax.InputSource;
 import org.xml.sax.SAXException;
 
 import com.k42b3.neodym.oauth.Oauth;
+import com.k42b3.neodym.oauth.SignatureException;
 
 /**
  * Http
@@ -75,7 +78,7 @@ public class Http
 		this(null);
 	}
 
-	public Response request(int method, String url, Map<String, String> header, HttpEntity body, boolean signed) throws Exception
+	public Response request(int method, String url, Map<String, String> header, HttpEntity body, boolean signed) throws IOException, SignatureException
 	{
 		// build request
 		CloseableHttpClient httpClient = HttpClients.createDefault();
@@ -96,7 +99,7 @@ public class Http
 		}
 		else
 		{
-			throw new Exception("Invalid request method");
+			throw new IllegalArgumentException("Invalid request method");
 		}
 
 		// add headers
@@ -130,25 +133,6 @@ public class Http
 			trafficListener.handleRequest(new TrafficItem(httpRequest, response));
 		}
 
-		// check status code
-		/*
-		int statusCode = httpResponse.getStatusLine().getStatusCode();
-
-		if(!(statusCode >= 200 && statusCode < 300))
-		{
-			String resp = response.getContent();
-
-			if(!resp.isEmpty())
-			{
-				throw new Exception(resp);
-			}
-			else
-			{
-				throw new Exception("No successful status code");
-			}
-		}
-		*/
-
 		// assign last request/response
 		lastRequest = httpRequest;
 		lastResponse = response;
@@ -156,44 +140,47 @@ public class Http
 		return response;
 	}
 
-	/*
-	public String request(int method, String url, Map<String, String> header, String body, boolean signed) throws Exception
-	{
-		return this.request(method, url, header, new StringEntity(body), true);
-	}
-	*/
-
-	public Response request(int method, String url, Map<String, String> header, HttpEntity body) throws Exception
+	public Response request(int method, String url, Map<String, String> header, HttpEntity body) throws IOException, SignatureException
 	{
 		return this.request(method, url, header, body, true);
 	}
 
-	public Response request(int method, String url, Map<String, String> header) throws Exception
+	public Response request(int method, String url, Map<String, String> header) throws IOException, SignatureException
 	{
 		return this.request(method, url, header, null, true);
 	}
 
-	public Response request(int method, String url) throws Exception
+	public Response request(int method, String url) throws IOException, SignatureException
 	{
 		return this.request(method, url, null);
 	}
 
-	public Response requestNotSigned(int method, String url, Map<String, String> header, HttpEntity body) throws Exception
+	public Response requestNotSigned(int method, String url, Map<String, String> header, HttpEntity body) throws IOException
 	{
-		return this.request(method, url, header, body, false);
+		try
+		{
+			return this.request(method, url, header, body, false);
+		}
+		catch(SignatureException e)
+		{
+			// should not happen since we dont sign a request
+			logger.warning(e.getMessage());
+		}
+
+		return null;
 	}
 
-	public Response requestNotSigned(int method, String url, Map<String, String> header) throws Exception
+	public Response requestNotSigned(int method, String url, Map<String, String> header) throws IOException
 	{
 		return this.requestNotSigned(method, url, header, null);
 	}
 
-	public Response requestNotSigned(int method, String url) throws Exception
+	public Response requestNotSigned(int method, String url) throws IOException
 	{
 		return this.requestNotSigned(method, url, null);
 	}
 
-	public Document requestXml(int method, String url, Map<String, String> header, HttpEntity body, boolean signed) throws Exception
+	public Document requestXml(int method, String url, Map<String, String> header, HttpEntity body, boolean signed) throws IOException, SignatureException, ParserConfigurationException, SAXException
 	{
 		// request
 		if(header == null)
@@ -209,56 +196,57 @@ public class Http
 		Response response = this.request(method, url, header, body, signed);
 		String xml = response.getContent();
 
-		try
-		{
-			// parse response
-			DocumentBuilderFactory dbf = DocumentBuilderFactory.newInstance();
-			DocumentBuilder db = dbf.newDocumentBuilder();
+		// parse response
+		DocumentBuilderFactory dbf = DocumentBuilderFactory.newInstance();
+		DocumentBuilder db = dbf.newDocumentBuilder();
 
-			InputSource is = new InputSource();
-			is.setCharacterStream(new StringReader(xml));
+		InputSource is = new InputSource();
+		is.setCharacterStream(new StringReader(xml));
 
-			Document doc = db.parse(is);
+		Document doc = db.parse(is);
 
-			Element rootElement = (Element) doc.getDocumentElement();
-			rootElement.normalize();
+		Element rootElement = (Element) doc.getDocumentElement();
+		rootElement.normalize();
 
-			return doc;
-		}
-		catch(SAXException e)
-		{
-			String text = xml.length() > 32 ? xml.substring(0, 32) + "..." : xml;
-
-			throw new Exception(text);
-		}
+		return doc;
 	}
 
-	public Document requestXml(int method, String url, Map<String, String> header, HttpEntity body) throws Exception
+	public Document requestXml(int method, String url, Map<String, String> header, HttpEntity body) throws IOException, SignatureException, ParserConfigurationException, SAXException
 	{
 		return this.requestXml(method, url, header, body, true);
 	}
 	
-	public Document requestXml(int method, String url, Map<String, String> header) throws Exception
+	public Document requestXml(int method, String url, Map<String, String> header) throws IOException, SignatureException, ParserConfigurationException, SAXException
 	{
 		return this.requestXml(method, url, header, null);
 	}
 
-	public Document requestXml(int method, String url) throws Exception
+	public Document requestXml(int method, String url) throws IOException, SignatureException, ParserConfigurationException, SAXException
 	{
 		return this.requestXml(method, url, null);
 	}
 
-	public Document requestNotSignedXml(int method, String url, Map<String, String> header, HttpEntity body) throws Exception
+	public Document requestNotSignedXml(int method, String url, Map<String, String> header, HttpEntity body) throws IOException, ParserConfigurationException, SAXException
 	{
-		return this.requestXml(method, url, header, body, false);
+		try
+		{
+			return this.requestXml(method, url, header, body, false);
+		}
+		catch(SignatureException e)
+		{
+			// should not happen since we dont sign a request
+			logger.warning(e.getMessage());
+		}
+
+		return null;
 	}
 
-	public Document requestNotSignedXml(int method, String url, Map<String, String> header) throws Exception
+	public Document requestNotSignedXml(int method, String url, Map<String, String> header) throws IOException, ParserConfigurationException, SAXException
 	{
 		return this.requestNotSignedXml(method, url, header, null);
 	}
 
-	public Document requestNotSignedXml(int method, String url) throws Exception
+	public Document requestNotSignedXml(int method, String url) throws IOException, ParserConfigurationException, SAXException
 	{
 		return this.requestNotSignedXml(method, url, null);
 	}
@@ -298,6 +286,10 @@ public class Http
 		if(url.indexOf('?') == -1)
 		{
 			return url + '?' + query;
+		}
+		else if(url.endsWith("&"))
+		{
+			return url + query;
 		}
 		else
 		{

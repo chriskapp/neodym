@@ -18,55 +18,26 @@
  * along with neodym. If not, see <http://www.gnu.org/licenses/>.
  */
 
-package com.k42b3.neodym.webfinger;
-
-import org.w3c.dom.Document;
-import org.w3c.dom.Element;
-import org.w3c.dom.NodeList;
+package com.k42b3.neodym;
 
 /**
- * HostMeta
+ * Neodym
  *
  * @author  Christoph Kappestein <k42b3.x@gmail.com>
  * @license http://www.gnu.org/licenses/gpl.html GPLv3
  * @link    https://github.com/k42b3/neodym
  */
-public class HostMeta 
+public class Neodym 
 {
-	private Document doc;
-
-	public HostMeta(Document doc) throws Exception
+	public static final String VERSION = "1.0.1";
+	
+	public static String getVersion()
 	{
-		if(!doc.getNamespaceURI().equals("http://docs.oasis-open.org/ns/xri/xrd-1.0"))
-		{
-			throw new Exception("Invalid host meta namespace");
-		}
-
-		this.doc = doc;
+		return VERSION;
 	}
 
-	public Document getDocument()
+	public static void main(String[] args)
 	{
-		return doc;
-	}
-
-	public String getTemplate()
-	{
-		NodeList links = doc.getElementsByTagName("Link");
-
-		if(links.getLength() > 0)
-		{
-			for(int i = 0; i < links.getLength(); i++)
-			{
-				Element link = (Element) links.item(i);
-
-				if(link.getAttribute("rel").equals("lrdd") && link.getAttribute("type").equals("application/xrd+xml"))
-				{
-					return link.getAttribute("template");
-				}
-			}
-		}
-
-		return null;
+		System.out.println("Version: " + VERSION);
 	}
 }

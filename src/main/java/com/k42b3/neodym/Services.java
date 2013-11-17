@@ -20,16 +20,22 @@
 
 package com.k42b3.neodym;
 
+import java.io.IOException;
+import java.net.URL;
 import java.util.ArrayList;
 import java.util.logging.Logger;
+
+import javax.xml.parsers.ParserConfigurationException;
 
 import org.apache.http.Header;
 import org.w3c.dom.Document;
 import org.w3c.dom.Element;
 import org.w3c.dom.Node;
 import org.w3c.dom.NodeList;
+import org.xml.sax.SAXException;
 
 import com.k42b3.neodym.data.Endpoint;
+import com.k42b3.neodym.oauth.SignatureException;
 
 /**
  * Contains all discovered items of the XRDS
@@ -52,18 +58,9 @@ public class Services
 		this.http = http;
 	}
 
-	public void discover() throws Exception
+	public void discover() throws IOException, SignatureException, ParserConfigurationException, SAXException, XrdsNotFoundException
 	{
-		String url = this.getXrdsUrl(baseUrl);
-
-		if(url != null)
-		{
-			this.request(url);
-		}
-		else
-		{
-			throw new Exception("Could not find xrds location");
-		}
+		this.request(this.getXrdsUrl(baseUrl));
 	}
 	
 	public Service getElementAt(int index) 
@@ -102,27 +99,27 @@ public class Services
 		return null;
 	}
 
-	public Endpoint getEndpoint(String type) throws Exception
+	public Endpoint getEndpoint(String type) throws ServiceNotFoundException
 	{
 		Service service = getService(type);
-		
+
 		if(service != null)
 		{
-			return new Endpoint(http, service);			
+			return new Endpoint(http, service);
 		}
 		else
 		{
-			throw new Exception("Could not find service " + type);
+			throw new ServiceNotFoundException("Could not find service " + type);
 		}
 	}
 
-	private String getXrdsUrl(String url) throws Exception
+	private String getXrdsUrl(String url) throws XrdsNotFoundException, IOException
 	{
+		String xrdsLocation = null;
 		Response response = http.requestNotSigned(Http.GET, url);
 
 		// find x-xrds-location header
 		Header[] headers = response.getAllHeaders();
-		String xrdsLocation = null;
 
 		for(int i = 0; i < headers.length; i++)
 		{
@@ -136,11 +133,15 @@ public class Services
 			}
 		}
 
+		if(xrdsLocation == null)
+		{
+			throw new XrdsNotFoundException("Could not find xrds location");
+		}
 
 		return xrdsLocation;
 	}
 
-	private void request(String url) throws Exception
+	private void request(String url) throws SAXException, ParserConfigurationException, SignatureException, IOException
 	{
 		// request
 		Document doc = http.requestXml(Http.GET, url);

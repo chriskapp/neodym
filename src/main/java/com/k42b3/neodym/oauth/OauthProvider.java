@@ -20,9 +20,17 @@
 
 package com.k42b3.neodym.oauth;
 
+import java.io.IOException;
+
+import javax.xml.parsers.ParserConfigurationException;
+
+import org.xml.sax.SAXException;
+
 import com.k42b3.neodym.Http;
 import com.k42b3.neodym.Service;
+import com.k42b3.neodym.ServiceNotFoundException;
 import com.k42b3.neodym.Services;
+import com.k42b3.neodym.XrdsNotFoundException;
 
 /**
  * OauthProvider
@@ -141,7 +149,7 @@ public class OauthProvider
 		this.method = method;
 	}
 	
-	public static OauthProvider discoverProvider(Http http, String baseUrl, String consumerKey, String consumerSecret) throws Exception
+	public static OauthProvider discoverProvider(Http http, String baseUrl, String consumerKey, String consumerSecret) throws ServiceNotFoundException, XrdsNotFoundException, SAXException, ParserConfigurationException, SignatureException, IOException
 	{
 		// load available services
 		Services services = new Services(http, baseUrl);
@@ -153,17 +161,17 @@ public class OauthProvider
 
 		if(request == null)
 		{
-			throw new Exception("Could not find request service");
+			throw new ServiceNotFoundException("Could not find request service");
 		}
 
 		if(authorization == null)
 		{
-			throw new Exception("Could not find authorization service");
+			throw new ServiceNotFoundException("Could not find authorization service");
 		}
 
 		if(access == null)
 		{
-			throw new Exception("Could not find access service");
+			throw new ServiceNotFoundException("Could not find access service");
 		}
 
 		return new OauthProvider(request.getUri(), authorization.getUri(), access.getUri(), consumerKey, consumerSecret);

@@ -21,6 +21,8 @@
 package com.k42b3.neodym.oauth;
 
 import java.nio.charset.Charset;
+import java.security.InvalidKeyException;
+import java.security.NoSuchAlgorithmException;
 
 import javax.crypto.Mac;
 import javax.crypto.SecretKey;
@@ -37,7 +39,7 @@ import org.apache.commons.codec.binary.Base64;
  */
 public class HMACSHA1 implements SignatureInterface
 {
-	public String build(String baseString, String consumerSecret, String tokenSecret) throws Exception
+	public String build(String baseString, String consumerSecret, String tokenSecret) throws SignatureException
 	{
 		String key = Oauth.urlEncode(consumerSecret) + "&" + Oauth.urlEncode(tokenSecret);
 
@@ -46,13 +48,23 @@ public class HMACSHA1 implements SignatureInterface
 
 		SecretKey sk = new SecretKeySpec(key.getBytes(charset), "HmacSHA1");
 
-		Mac mac = Mac.getInstance("HmacSHA1");
+		try
+		{
+			Mac mac = Mac.getInstance("HmacSHA1");
 
-		mac.init(sk);
+			mac.init(sk);
 
-		byte[] result = mac.doFinal(baseString.getBytes(charset));
+			byte[] result = mac.doFinal(baseString.getBytes(charset));
 
-
-		return Base64.encodeBase64String(result);
+			return Base64.encodeBase64String(result);
+		}
+		catch(NoSuchAlgorithmException e)
+		{
+			throw new SignatureException(e);
+		}
+		catch(InvalidKeyException e)
+		{
+			throw new SignatureException(e);
+		}
 	}
 }

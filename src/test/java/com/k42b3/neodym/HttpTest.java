@@ -18,35 +18,24 @@
  * along with neodym. If not, see <http://www.gnu.org/licenses/>.
  */
 
-package com.k42b3.neodym.webfinger;
+package com.k42b3.neodym;
 
-import org.w3c.dom.Document;
-
-import com.k42b3.neodym.Http;
+import junit.framework.TestCase;
 
 /**
- * Webfinger
+ * HttpTest
  *
  * @author  Christoph Kappestein <k42b3.x@gmail.com>
  * @license http://www.gnu.org/licenses/gpl.html GPLv3
  * @link    https://github.com/k42b3/neodym
  */
-public class Webfinger 
+public class HttpTest extends TestCase
 {
-	private Http http;
-	private String baseUrl;
-
-	public Webfinger(Http http, String baseUrl)
-	{
-		this.http = http;
-		this.baseUrl = baseUrl;
-	}
-
-	public Document getLrdd(String url) throws Exception
-	{
-		Document doc = http.requestNotSignedXml(Http.GET, baseUrl + "/.well-known/host-meta");
-		HostMeta hm = new HostMeta(doc);
-
-		return http.requestNotSignedXml(Http.GET, hm.getTemplate().replace("{uri}", url));
-	}
+    public void testAppendQuery()
+    {
+        assertEquals("http://foo.com?foo=bar", Http.appendQuery("http://foo.com", "foo=bar"));
+        assertEquals("http://foo.com?bar=foo&foo=bar", Http.appendQuery("http://foo.com?bar=foo", "foo=bar"));
+        assertEquals("http://foo.com?bar=foo&test=test&foo=bar", Http.appendQuery("http://foo.com?bar=foo&test=test", "foo=bar"));
+        assertEquals("http://foo.com?bar=foo&foo=bar", Http.appendQuery("http://foo.com?bar=foo&", "foo=bar"));
+    }
 }

@@ -20,7 +20,9 @@
 
 package com.k42b3.neodym.data;
 
+import java.io.IOException;
 import java.io.StringWriter;
+import java.io.UnsupportedEncodingException;
 import java.net.URLEncoder;
 import java.util.ArrayList;
 import java.util.HashMap;
@@ -30,8 +32,11 @@ import java.util.Map.Entry;
 
 import javax.xml.parsers.DocumentBuilder;
 import javax.xml.parsers.DocumentBuilderFactory;
+import javax.xml.parsers.ParserConfigurationException;
 import javax.xml.transform.OutputKeys;
 import javax.xml.transform.Transformer;
+import javax.xml.transform.TransformerConfigurationException;
+import javax.xml.transform.TransformerException;
 import javax.xml.transform.TransformerFactory;
 import javax.xml.transform.dom.DOMSource;
 import javax.xml.transform.stream.StreamResult;
@@ -41,9 +46,11 @@ import org.w3c.dom.Document;
 import org.w3c.dom.Element;
 import org.w3c.dom.Node;
 import org.w3c.dom.NodeList;
+import org.xml.sax.SAXException;
 
 import com.k42b3.neodym.Http;
 import com.k42b3.neodym.Service;
+import com.k42b3.neodym.oauth.SignatureException;
 
 /**
  * Endpoint
@@ -57,19 +64,19 @@ public class Endpoint
 	protected Http http;
 	protected Service service;
 	
-	public Endpoint(Http http, Service service) throws Exception
+	public Endpoint(Http http, Service service)
 	{
 		this.http = http;
 		this.service = service;
 		
 		if(service == null)
 		{
-			throw new Exception("Service not available");
+			throw new NullPointerException("Service not available");
 		}
 
 		if(!service.getTypes().contains("http://ns.amun-project.org/2011/amun/data/1.0"))
 		{
-			throw new Exception("Not an amun data type endpoint");
+			throw new IllegalArgumentException("Not an amun data type endpoint");
 		}
 	}
 
@@ -78,7 +85,7 @@ public class Endpoint
 		return service;
 	}
 
-	public ResultSet getAll(List<String> fields, int startIndex, int count, String filterBy, String filterOp, String filterValue) throws Exception
+	public ResultSet getAll(List<String> fields, int startIndex, int count, String filterBy, String filterOp, String filterValue) throws UnsupportedEncodingException, SAXException, ParserConfigurationException, SignatureException, IOException
 	{
 		String url = service.getUri();
 
@@ -165,12 +172,12 @@ public class Endpoint
 		return result;
 	}
 	
-	public ResultSet getAll(List<String> fields, int startIndex, int count) throws Exception
+	public ResultSet getAll(List<String> fields, int startIndex, int count) throws UnsupportedEncodingException, SAXException, ParserConfigurationException, SignatureException, IOException
 	{
 		return getAll(fields, startIndex, count, null, null, null);
 	}
 
-	public List<String> getSupportedFields() throws Exception
+	public List<String> getSupportedFields() throws SAXException, ParserConfigurationException, SignatureException, IOException
 	{
 		ArrayList<String> fields = new ArrayList<String>();
 		Document response = http.requestXml(Http.GET, service.getUri() + "/@supportedFields");
@@ -184,22 +191,22 @@ public class Endpoint
 		return fields;
 	}
 
-	public Message create(Record record) throws Exception
+	public Message create(Record record) throws SAXException, ParserConfigurationException, TransformerConfigurationException, TransformerException, SignatureException, IOException
 	{
 		return sendRequest("POST", record);
 	}
 	
-	public Message update(Record record) throws Exception
+	public Message update(Record record) throws SAXException, ParserConfigurationException, TransformerConfigurationException, TransformerException, SignatureException, IOException
 	{
 		return sendRequest("PUT", record);
 	}
 	
-	public Message delete(Record record) throws Exception
+	public Message delete(Record record) throws SAXException, ParserConfigurationException, TransformerConfigurationException, TransformerException, SignatureException, IOException
 	{
 		return sendRequest("DELETE", record);
 	}
 
-	protected Message sendRequest(String method, Record record) throws Exception
+	protected Message sendRequest(String method, Record record) throws SAXException, ParserConfigurationException, TransformerConfigurationException, TransformerException, SignatureException, IOException
 	{
 		DocumentBuilderFactory dbf = DocumentBuilderFactory.newInstance();
 		DocumentBuilder db = dbf.newDocumentBuilder();
