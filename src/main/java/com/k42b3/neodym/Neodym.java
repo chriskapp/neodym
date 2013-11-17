@@ -35,9 +35,4 @@ public class Neodym
 	{
 		return VERSION;
 	}
-
-	public static void main(String[] args)
-	{
-		System.out.println("Version: " + VERSION);
-	}
 }
